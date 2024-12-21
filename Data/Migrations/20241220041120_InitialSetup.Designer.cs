@@ -12,7 +12,7 @@ using ShoppingApplication.Data;
 namespace ShoppingApplication.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20241220030826_InitialSetup")]
+    [Migration("20241220041120_InitialSetup")]
     partial class InitialSetup
     {
         /// <inheritdoc />

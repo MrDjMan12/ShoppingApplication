@@ -14,6 +14,8 @@ using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.Extensions.Logging;
+using ShoppingApplication.Services;
+using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace ShoppingApplication.Areas.Identity.Pages.Account
 {
@@ -21,11 +23,13 @@ namespace ShoppingApplication.Areas.Identity.Pages.Account
     {
         private readonly SignInManager<IdentityUser> _signInManager;
         private readonly ILogger<LoginModel> _logger;
+        private readonly IJwtTokenService _jwtTokenService;
 
-        public LoginModel(SignInManager<IdentityUser> signInManager, ILogger<LoginModel> logger)
+        public LoginModel(SignInManager<IdentityUser> signInManager, ILogger<LoginModel> logger, IJwtTokenService jwtToken)
         {
             _signInManager = signInManager;
             _logger = logger;
+            _jwtTokenService = jwtToken;
         }
 
         /// <summary>
@@ -115,7 +119,11 @@ namespace ShoppingApplication.Areas.Identity.Pages.Account
                 if (result.Succeeded)
                 {
                     _logger.LogInformation("User logged in.");
-                    return LocalRedirect(returnUrl);
+
+                    var user =  await _signInManager.UserManager.FindByEmailAsync(Input.Email);
+                    var token = await _jwtTokenService.GenerateJwtToken(user);
+
+                    return Redirect($"/?token={token}");
                 }
                 if (result.RequiresTwoFactor)
                 {

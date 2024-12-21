@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.OpenApi;
 using Microsoft.EntityFrameworkCore;
@@ -9,6 +10,7 @@ using Scalar.AspNetCore;
 using ShoppingApplication.Data;
 using System.Security.Cryptography;
 using System.Text;
+using ShoppingApplication.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -16,8 +18,10 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllersWithViews().AddRazorRuntimeCompilation();
 
-//Add configuration sources
 
+builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
+
+//Add configuration sources
 builder.Configuration.AddUserSecrets<Program>();
 
 var jwt = builder.Configuration.GetSection("Jwt");
@@ -75,6 +79,20 @@ using (var scope = app.Services.CreateScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
     dbContext.Database.Migrate(); // This automatically applies migrations and creates the DB schema
+    
+    //Seed Roles
+    var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+
+    string[] roles = { "SuperAdmin", "Admin", "Shopper", "OutletOwner"};
+
+    foreach (var role in roles)
+    {
+        if (!await roleManager.RoleExistsAsync(role))
+        {
+            await roleManager.CreateAsync(new IdentityRole(role));
+        }
+    }
+
 }
 
 // Configure the HTTP request pipeline.
@@ -87,6 +105,8 @@ else
     app.UseExceptionHandler("/Home/Error");
     app.UseHsts();
 }
+
+
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
