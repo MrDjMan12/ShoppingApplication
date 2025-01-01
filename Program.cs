@@ -16,6 +16,15 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 
+//Session Based Authentication: MiddleWare to add Services for Session
+//builder.Services.AddDistributedMemoryCache(); // Required for session
+//builder.Services.AddSession(options =>
+//{
+//    options.IdleTimeout = TimeSpan.FromMinutes(30); // Session timeout
+//    options.Cookie.HttpOnly = true; // Prevent access via JavaScript
+//    options.Cookie.IsEssential = true; // Required for GDPR compliance
+//});
+
 builder.Services.AddControllersWithViews().AddRazorRuntimeCompilation();
 
 
@@ -70,7 +79,28 @@ builder.Services.AddAuthentication(scheme).AddJwtBearer(options =>
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key))
     };
 
+    //Cookie Based Authentication: Retrieves the token within the cookie instead of the authentication header
+    options.Events = new JwtBearerEvents
+    {
+        OnMessageReceived = context =>
+        {
+            if (context.HttpContext.Request.Cookies.TryGetValue("JwtToken", out var token))
+            {
+                context.Token = token; // Read the token from the cookie
+            }
+            return Task.CompletedTask;
+        }
+    };
+
 });
+
+//Role-Based Policy Configuration
+builder.Services.AddAuthorizationBuilder()
+    .AddPolicy("SuperAdminOnly", policy => policy.RequireClaim("SuperAdmin"));
+
+//Claim-Based Policy Configuration
+//builder.Services.AddAuthorizationBuilder()
+//    .AddPolicy("SuperAdminOnly", policy => policy.RequireClaim("Role", "SuperAdmin"));
 
 var app = builder.Build();
 
@@ -82,8 +112,9 @@ using (var scope = app.Services.CreateScope())
     
     //Seed Roles
     var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+    var userManager = scope.ServiceProvider.GetService<UserManager<IdentityUser>>();
 
-    string[] roles = { "SuperAdmin", "Admin", "Shopper", "OutletOwner"};
+    string[] roles = { "SuperAdmin", "Admin", "User"};
 
     foreach (var role in roles)
     {
@@ -91,6 +122,13 @@ using (var scope = app.Services.CreateScope())
         {
             await roleManager.CreateAsync(new IdentityRole(role));
         }
+    }
+
+    //Assign a user to the SuperAdmin role
+    var user = await userManager.FindByEmailAsync("Email");
+    if (user != null && !await userManager.IsInRoleAsync(user, "SuperAdmin"))
+    {
+        await userManager.AddToRoleAsync(user, "SuperAdmin");
     }
 
 }
@@ -106,8 +144,6 @@ else
     app.UseHsts();
 }
 
-
-
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 
@@ -115,6 +151,8 @@ app.UseRouting();
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+//app.UseSession();
 
 app.MapScalarApiReference();
 app.MapControllerRoute(

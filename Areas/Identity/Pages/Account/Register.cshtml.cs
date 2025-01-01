@@ -5,6 +5,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
 using System.Text;
 using System.Text.Encodings.Web;
@@ -18,6 +19,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Logging;
+using ShoppingApplication.Services;
 
 namespace ShoppingApplication.Areas.Identity.Pages.Account
 {
@@ -30,6 +32,7 @@ namespace ShoppingApplication.Areas.Identity.Pages.Account
         private readonly ILogger<RegisterModel> _logger;
         private readonly IEmailSender _emailSender;
         private readonly RoleManager<IdentityRole> _roleManager;
+        private readonly IJwtTokenService _jwtTokenService;
 
         public RegisterModel(
             UserManager<IdentityUser> userManager,
@@ -37,7 +40,8 @@ namespace ShoppingApplication.Areas.Identity.Pages.Account
             SignInManager<IdentityUser> signInManager,
             ILogger<RegisterModel> logger,
             IEmailSender emailSender,
-            RoleManager<IdentityRole> roleManager)
+            RoleManager<IdentityRole> roleManager,
+            IJwtTokenService jwtTokenService)
         {
             _userManager = userManager;
             _userStore = userStore;
@@ -46,6 +50,7 @@ namespace ShoppingApplication.Areas.Identity.Pages.Account
             _logger = logger;
             _emailSender = emailSender;
             _roleManager = roleManager;
+            _jwtTokenService = jwtTokenService;
         }
 
         /// <summary>
@@ -143,8 +148,14 @@ namespace ShoppingApplication.Areas.Identity.Pages.Account
                     }
                     else
                     {
+                        var token = await _jwtTokenService.GenerateJwtToken(user);
                         await _signInManager.SignInAsync(user, isPersistent: false);
+
+                        //Return the token in the Authentication header  (Stateless Jwt)
+
+                        Response.Headers.Append("Authorization", $"Bearer {token}");
                         return LocalRedirect(returnUrl);
+                        
                     }
                 }
                 foreach (var error in result.Errors)

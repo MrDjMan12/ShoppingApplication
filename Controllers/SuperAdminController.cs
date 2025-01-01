@@ -3,9 +3,9 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace ShoppingApplication.Controllers
 {
+    [Authorize(Policy = "SuperAdminOnly")]
     public class SuperAdminController : Controller
     {
-        [Authorize(Roles = "SuperAdmin")]
         public IActionResult Index()
         {
             return View();

@@ -16,6 +16,8 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.Extensions.Logging;
 using ShoppingApplication.Services;
 using Microsoft.AspNetCore.Http.HttpResults;
+using Newtonsoft.Json.Linq;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
 
 namespace ShoppingApplication.Areas.Identity.Pages.Account
 {
@@ -120,10 +122,28 @@ namespace ShoppingApplication.Areas.Identity.Pages.Account
                 {
                     _logger.LogInformation("User logged in.");
 
-                    var user =  await _signInManager.UserManager.FindByEmailAsync(Input.Email);
+                    var user = await _signInManager.UserManager.FindByEmailAsync(Input.Email);
                     var token = await _jwtTokenService.GenerateJwtToken(user);
 
-                    return Redirect($"/?token={token}");
+                    //Return the token in the Authentication header (Stateless Jwt)
+                    //HttpContext.Response.Headers.Append("Authorization", $"Bearer {token}");
+                    //return RedirectToPage(returnUrl);
+
+                    //Session Based Authentication: Storing the Jwt Token within the .AspNet Session
+                    //HttpContext.Session.SetString("JwtToken", token);
+                    //return RedirectToPage(returnUrl);
+
+                    //Cookie Based Authentication: Storing the Jwt Token within the cookie
+                    //Set Http-Only cookkie which allows for the token to not be accessed via Javascript in order to mitigaet XSS attacks
+                    var cookieOptions = new CookieOptions
+                    {
+                        HttpOnly = true,
+                        Secure = true,
+                        SameSite = SameSiteMode.Strict,
+                        Expires = DateTime.UtcNow.AddMinutes(30)
+                    };
+                    Response.Cookies.Append("AuthToken", token, cookieOptions);
+                    return RedirectToPage(returnUrl);
                 }
                 if (result.RequiresTwoFactor)
                 {
