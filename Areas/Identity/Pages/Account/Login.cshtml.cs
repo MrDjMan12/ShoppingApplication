@@ -142,7 +142,7 @@ namespace ShoppingApplication.Areas.Identity.Pages.Account
                         SameSite = SameSiteMode.Strict,
                         Expires = DateTime.UtcNow.AddMinutes(30)
                     };
-                    Response.Cookies.Append("AuthToken", token, cookieOptions);
+                    Response.Cookies.Append("JwtToken", token, cookieOptions);
                     return RedirectToPage(returnUrl);
                 }
                 if (result.RequiresTwoFactor)

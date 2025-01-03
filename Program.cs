@@ -45,6 +45,7 @@ builder.Services.AddIdentity<IdentityUser, IdentityRole>()
     .AddDefaultUI();
 
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
+//Used for the Weather API
 builder.Services.AddOpenApi(options =>
 {
     options.AddDocumentTransformer<BearerSecuritySchemeTransformer>();
@@ -67,7 +68,12 @@ builder.Services.AddOpenApi(options =>
 });
 
 string scheme = JwtBearerDefaults.AuthenticationScheme;
-builder.Services.AddAuthentication(scheme).AddJwtBearer(options =>
+builder.Services.AddAuthentication(options =>
+{ 
+    options.DefaultAuthenticateScheme = scheme;
+    options.DefaultChallengeScheme = scheme;
+})
+.AddJwtBearer(options =>
 {
     options.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
     {
@@ -95,12 +101,12 @@ builder.Services.AddAuthentication(scheme).AddJwtBearer(options =>
 });
 
 //Role-Based Policy Configuration
-builder.Services.AddAuthorizationBuilder()
-    .AddPolicy("SuperAdminOnly", policy => policy.RequireClaim("SuperAdmin"));
+//builder.Services.AddAuthorizationBuilder()
+//    .AddPolicy("SuperAdminOnly", policy => policy.RequireClaim("SuperAdmin"));
 
 //Claim-Based Policy Configuration
-//builder.Services.AddAuthorizationBuilder()
-//    .AddPolicy("SuperAdminOnly", policy => policy.RequireClaim("Role", "SuperAdmin"));
+builder.Services.AddAuthorizationBuilder()
+    .AddPolicy("SuperAdminOnly", policy => policy.RequireClaim("Role", "SuperAdmin"));
 
 var app = builder.Build();
 
@@ -162,6 +168,7 @@ app.MapRazorPages();
 
 app.Run();
 
+//Use for the Weather Api
 internal sealed class BearerSecuritySchemeTransformer(IAuthenticationSchemeProvider authenticationSchemeProvider) : IOpenApiDocumentTransformer
 {
     public async Task TransformAsync(OpenApiDocument document, OpenApiDocumentTransformerContext context, CancellationToken cancellationToken)
@@ -175,6 +182,7 @@ internal sealed class BearerSecuritySchemeTransformer(IAuthenticationSchemeProvi
                 {
                     Type = SecuritySchemeType.Http,
                     Scheme = JwtBearerDefaults.AuthenticationScheme.ToLower(),
+                    //Determines where the Auth token is stored (Can choose Cookie Or Header)
                     In = ParameterLocation.Header,
                     BearerFormat = "Json Web Token"
                 }

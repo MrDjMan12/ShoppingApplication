@@ -1,6 +1,0 @@
-@ShoppingApplication_HostAddress = http://localhost:5085
-
-GET {{ShoppingApplication_HostAddress}}/weatherforecast/
-Accept: application/json
-
-###
